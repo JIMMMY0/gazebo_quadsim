@@ -344,10 +344,10 @@ void GazeboImuPlugin::OnUpdate(const common::UpdateInfo& _info) {
   angular_velocity->set_z(angular_velocity_I[2]);
   imu_message_.set_allocated_angular_velocity(angular_velocity);
 
+  //std::cout << "Published IMU message.\n";
+
   // Publish the IMU message
   imu_pub_->Publish(imu_message_);
-
-  // std::cout << "Published IMU message.\n";
 }
 
 void GazeboImuPlugin::CreatePubsAndSubs() {

@@ -20,6 +20,7 @@
 #include <mav_msgs/Actuators.h>
 #include <mav_msgs/default_topics.h>
 #include <mavros_msgs/HilControls.h>
+#include <mavros_msgs/ActuatorControl.h>
 #include <mavros_msgs/mavlink_convert.h>
 
 #include <rotors_hil_interface/hil_listeners.h>

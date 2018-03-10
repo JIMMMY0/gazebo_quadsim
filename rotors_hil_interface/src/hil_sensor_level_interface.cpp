@@ -38,6 +38,7 @@ HilSensorLevelInterface::HilSensorLevelInterface(const Eigen::Quaterniond& q_S_B
   pnh.param("mag_topic", mag_sub_topic, std::string(mav_msgs::default_topics::MAGNETIC_FIELD));
   pnh.param("pressure_topic", pressure_sub_topic, kDefaultPressureSubTopic);
 
+
   // Compute the desired interval between published GPS messages.
   gps_interval_nsec_ = static_cast<uint64_t>(kSecToNsec / gps_freq);
 
@@ -83,6 +84,7 @@ HilSensorLevelInterface::~HilSensorLevelInterface() {
 std::vector<mavros_msgs::Mavlink> HilSensorLevelInterface::CollectData() {
   boost::mutex::scoped_lock lock(mtx_);
 
+  /* get current time and change it into ms */
   ros::Time current_time = ros::Time::now();
   uint64_t time_usec = RosTimeToMicroseconds(current_time);
 
@@ -95,7 +97,7 @@ std::vector<mavros_msgs::Mavlink> HilSensorLevelInterface::CollectData() {
   Eigen::Vector3f mag = R_S_B_ * hil_data_.mag_G;
 
   // Check if we need to publish a HIL_GPS message.
-  if ((current_time.nsec - last_gps_pub_time_nsec_) >= gps_interval_nsec_) {
+  if ((current_time.nsec - last_gps_pub_time_nsec_) >= gps_interval_nsec_ && hil_listeners_.gps_cb_invoke) {
     last_gps_pub_time_nsec_ = current_time.nsec;
 
     // Rotate ground speed data into NED frame
@@ -127,32 +129,38 @@ std::vector<mavros_msgs::Mavlink> HilSensorLevelInterface::CollectData() {
     hil_msgs.push_back(*rmsg_hil_gps);
   }
 
-  // Fill in a MAVLINK HIL_SENSOR message and convert it to MAVROS format.
-  hil_sensor_msg_.time_usec = time_usec;
-  hil_sensor_msg_.xacc = acc.x();
-  hil_sensor_msg_.yacc = acc.y();
-  hil_sensor_msg_.zacc = acc.z();
-  hil_sensor_msg_.xgyro = gyro.x();
-  hil_sensor_msg_.ygyro = gyro.y();
-  hil_sensor_msg_.zgyro = gyro.z();
-  hil_sensor_msg_.xmag = mag.x();
-  hil_sensor_msg_.ymag = mag.y();
-  hil_sensor_msg_.zmag = mag.z();
-  hil_sensor_msg_.abs_pressure = hil_data_.pressure_abs_mBar;
-  hil_sensor_msg_.diff_pressure = hil_data_.pressure_diff_mBar;
-  hil_sensor_msg_.pressure_alt = hil_data_.pressure_alt;
-  hil_sensor_msg_.temperature = hil_data_.temperature_degC;
-  hil_sensor_msg_.fields_updated = kAllFieldsUpdated;
+  /* add by JC: fix the problem that data is collected before callback function */
+  if(hil_listeners_.imu_cb_invoke && hil_listeners_.mag_cb_invoke){
+    // Fill in a MAVLINK HIL_SENSOR message and convert it to MAVROS format.
+    hil_sensor_msg_.time_usec = time_usec;
+    hil_sensor_msg_.xacc = acc.x();
+    hil_sensor_msg_.yacc = acc.y();
+    hil_sensor_msg_.zacc = acc.z();
+    hil_sensor_msg_.xgyro = gyro.x();
+    hil_sensor_msg_.ygyro = gyro.y();
+    hil_sensor_msg_.zgyro = gyro.z();
+    hil_sensor_msg_.xmag = mag.x();
+    hil_sensor_msg_.ymag = mag.y();
+    hil_sensor_msg_.zmag = mag.z();
+    hil_sensor_msg_.abs_pressure = hil_data_.pressure_abs_mBar;
+    hil_sensor_msg_.diff_pressure = hil_data_.pressure_diff_mBar;
+    hil_sensor_msg_.pressure_alt = hil_data_.pressure_alt;
+    hil_sensor_msg_.temperature = hil_data_.temperature_degC;
+    hil_sensor_msg_.fields_updated = kAllFieldsUpdated;
 
-  mavlink_hil_sensor_t* hil_sensor_msg_ptr = &hil_sensor_msg_;
-  mavlink_msg_hil_sensor_encode(1, 0, &mmsg, hil_sensor_msg_ptr);
+    // ROS_INFO("acc %f %f %f gyr %f %f %f mag %f %f %f", hil_sensor_msg_.xacc, hil_sensor_msg_.yacc, hil_sensor_msg_.zacc,
+    //     hil_sensor_msg_.xgyro, hil_sensor_msg_.ygyro, hil_sensor_msg_.zgyro, hil_sensor_msg_.xmag, hil_sensor_msg_.ymag, hil_sensor_msg_.zmag);
 
-  mavros_msgs::MavlinkPtr rmsg_hil_sensor = boost::make_shared<mavros_msgs::Mavlink>();
-  rmsg_hil_sensor->header.stamp.sec = current_time.sec;
-  rmsg_hil_sensor->header.stamp.nsec = current_time.nsec;
-  mavros_msgs::mavlink::convert(mmsg, *rmsg_hil_sensor);
+    mavlink_hil_sensor_t* hil_sensor_msg_ptr = &hil_sensor_msg_;
+    mavlink_msg_hil_sensor_encode(1, 0, &mmsg, hil_sensor_msg_ptr);
 
-  hil_msgs.push_back(*rmsg_hil_sensor);
+    mavros_msgs::MavlinkPtr rmsg_hil_sensor = boost::make_shared<mavros_msgs::Mavlink>();
+    rmsg_hil_sensor->header.stamp.sec = current_time.sec;
+    rmsg_hil_sensor->header.stamp.nsec = current_time.nsec;
+    mavros_msgs::mavlink::convert(mmsg, *rmsg_hil_sensor);
+
+    hil_msgs.push_back(*rmsg_hil_sensor);
+  }
 
   return hil_msgs;
 }

@@ -12,7 +12,9 @@ from qt_gui.plugin import Plugin
 from python_qt_binding import loadUi
 from python_qt_binding import QtCore
 from python_qt_binding.QtCore import QTimer, Slot
-from python_qt_binding.QtGui import QWidget, QFormLayout
+#from python_qt_binding.QtGui import QWidget, QFormLayout
+# JC: QtGui is not exited in Qt5
+from python_qt_binding.QtWidgets import QWidget, QFormLayout
 
 import time
 

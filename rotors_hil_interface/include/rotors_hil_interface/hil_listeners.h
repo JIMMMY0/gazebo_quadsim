@@ -86,6 +86,10 @@ class HilListeners {
   HilListeners() {}
   virtual ~HilListeners() {}
 
+  bool imu_cb_invoke = false;
+  bool mag_cb_invoke = false;
+  bool gps_cb_invoke = false;
+
   /// \brief Callback for handling Air Speed messages.
   /// \param[in] air_speed_msg An Air Speed message.
   /// \param[out] hil_data Pointer to latest data collected for HIL publishing.
@@ -126,6 +130,8 @@ class HilListeners {
     hil_data->fix_type =
         (gps_msg->status.status > sensor_msgs::NavSatStatus::STATUS_NO_FIX) ?
             kFix3D : kFixNone;
+
+    gps_cb_invoke = true;
   }
 
   /// \brief Callback for handling Ground Speed messages.
@@ -169,6 +175,8 @@ class HilListeners {
     hil_data->gyro_rad_per_s = Eigen::Vector3f(imu_msg->angular_velocity.x,
                                      imu_msg->angular_velocity.y,
                                      imu_msg->angular_velocity.z);
+
+    imu_cb_invoke = true;
   }
 
   /// \brief Callback for handling Magnetometer messages.
@@ -186,6 +194,8 @@ class HilListeners {
     hil_data->mag_G = Eigen::Vector3f(mag_msg->magnetic_field.x,
                                     mag_msg->magnetic_field.y,
                                     mag_msg->magnetic_field.z) * kTeslaToGauss;
+
+    mag_cb_invoke = true;
   }
 
   /// \brief Callback for handling Air Pressure messages.

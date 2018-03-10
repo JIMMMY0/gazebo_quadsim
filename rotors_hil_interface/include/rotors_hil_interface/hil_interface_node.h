@@ -30,6 +30,7 @@ static constexpr double kDefaultBodyToSensorsPitch = 0.0;
 static constexpr double kDefaultBodyToSensorsYaw = 0.0;
 static const std::string kDefaultMavlinkPubTopic = "mavlink/to";
 static const std::string kDefaultHilControlsSubTopic = "mavros/hil_controls/hil_controls";
+static const std::string kDefaultActuatorControlSubTopic = "/mavros/actuator_control";
 
 class HilInterfaceNode {
  public:
@@ -42,6 +43,7 @@ class HilInterfaceNode {
   /// \brief Callback for handling HilControls messages.
   /// \param[in] hil_controls_msg A HilControls message.
   void HilControlsCallback(const mavros_msgs::HilControlsConstPtr& hil_controls_msg);
+  void ActuatorControlsCallback(const mavros_msgs::ActuatorControlConstPtr& actuator_control_msg);
 
  private:
   /// ROS node handle.
@@ -55,6 +57,9 @@ class HilInterfaceNode {
 
   /// ROS subscriber for handling HilControls messages.
   ros::Subscriber hil_controls_sub_;
+
+  /// ROS subscriber for handling ActuatorControl messages.
+  ros::Subscriber hil_actuator_control_sub_;
 
   /// Object for spinning.
   ros::Rate rate_;
