@@ -234,6 +234,7 @@ void GazeboMotorModel::ControlVelocityCallback(
           << command_motor_speed_msg->motor_speed_size();
   }
 
+  /* read motor speed from topic */
   ref_motor_rot_vel_ = std::min(
       static_cast<double>(command_motor_speed_msg->motor_speed(motor_number_)),
       static_cast<double>(max_rot_velocity_));
@@ -252,16 +253,19 @@ void GazeboMotorModel::WindSpeedCallback(GzWindSpeedMsgPtr& wind_speed_msg) {
 }
 
 void GazeboMotorModel::UpdateForcesAndMoments() {
+  /* get rotation rate of an axis */
   motor_rot_vel_ = joint_->GetVelocity(0);
   if (motor_rot_vel_ / (2 * M_PI) > 1 / (2 * sampling_time_)) {
     gzerr << "Aliasing on motor [" << motor_number_
           << "] might occur. Consider making smaller simulation time steps or "
              "raising the rotor_velocity_slowdown_sim_ param.\n";
   }
+
   double real_motor_velocity = motor_rot_vel_ * rotor_velocity_slowdown_sim_;
   // Get the direction of the rotor rotation.
   int real_motor_velocity_sign = (real_motor_velocity > 0) - (real_motor_velocity < 0);
   //Assuming symmetric propellers (or rotors) for the force calculation.
+  /* F = m_c*w^2 */
   double force = turning_direction_ * real_motor_velocity_sign * real_motor_velocity * real_motor_velocity * motor_constant_;
 
 // TODO(ff): remove this?
@@ -305,6 +309,7 @@ void GazeboMotorModel::UpdateForcesAndMoments() {
   // The tansformation from the parent_link to the link_.
   math::Pose pose_difference =
       link_->GetWorldCoGPose() - parent_links.at(0)->GetWorldCoGPose();
+  /* calculate drag torque for yaw, a little bit strange to calculate like this? */
   math::Vector3 drag_torque(0, 0,
                             -turning_direction_ * force * moment_constant_);
   // Transforming the drag torque into the parent frame to handle arbitrary
@@ -315,6 +320,7 @@ void GazeboMotorModel::UpdateForcesAndMoments() {
 
   math::Vector3 rolling_moment;
   // - \omega * \mu_1 * V_A^{\perp}
+  /* what's the rolling moment? */
   rolling_moment = -std::abs(real_motor_velocity) *
                    rolling_moment_coefficient_ * body_velocity_perpendicular;
   parent_links.at(0)->AddTorque(rolling_moment);

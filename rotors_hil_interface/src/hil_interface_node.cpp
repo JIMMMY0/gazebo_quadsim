@@ -15,6 +15,7 @@
  */
 
 #include "rotors_hil_interface/hil_interface_node.h"
+#include <sys/time.h>
 
 namespace rotors_hil {
 
@@ -51,11 +52,7 @@ namespace rotors_hil {
 
     const Eigen::Quaterniond q_S_B = roll_angle * pitch_angle * yaw_angle;
 
-    if (sensor_level_hil)
-      hil_interface_ = std::auto_ptr<HilSensorLevelInterface>(new HilSensorLevelInterface(q_S_B));
-    else
-      hil_interface_ = std::auto_ptr<HilStateLevelInterface>(new HilStateLevelInterface(q_S_B));
-
+    ROS_INFO("hil freq:%d", hil_frequency);
     /* it is not hard real-time */
     rate_ = ros::Rate(hil_frequency);
 
@@ -69,25 +66,34 @@ namespace rotors_hil {
     /* hil_actuator_controls for multirotors */
     hil_actuator_control_sub_ = nh_.subscribe(hil_actuator_control_sub_topic, 1,
                                            &HilInterfaceNode::ActuatorControlsCallback, this);
+
+    if (sensor_level_hil)
+      hil_interface_ = std::auto_ptr<HilSensorLevelInterface>(new HilSensorLevelInterface(q_S_B, mavlink_pub_));
+    else
+      ROS_INFO("state level simulation, TODO");
+      //hil_interface_ = std::auto_ptr<HilStateLevelInterface>(new HilStateLevelInterface(q_S_B,  mavlink_pub_));
   }
 
   HilInterfaceNode::~HilInterfaceNode() {
   }
 
   void HilInterfaceNode::MainTask() {
+    //static double last_msec = 0;
     /* while node is not shutdown */
-    while (ros::ok()) {
-      ros::spinOnce();
-      /* collect sensor data */
-      std::vector<mavros_msgs::Mavlink> hil_msgs = hil_interface_->CollectData();
-      while (!hil_msgs.empty()) {
-        /* publish mavlink msg */
-        mavlink_pub_.publish(hil_msgs.back());
-        hil_msgs.pop_back();
-      }
-      //ros::spinOnce();
-      rate_.sleep();
-    }
+    // while (ros::ok()) {
+    //   ros::spinOnce();
+    //   /* collect sensor data */
+    //   std::vector<mavros_msgs::Mavlink> hil_msgs = hil_interface_->CollectData();
+    //   while (!hil_msgs.empty()) {
+    //     /* publish mavlink msg */
+    //     mavlink_pub_.publish(hil_msgs.back());
+    //     hil_msgs.pop_back();
+    //   }
+    //   //ros::spinOnce();
+    //   rate_.sleep();
+    // }
+
+    ros::spin();
   }
 
   void HilInterfaceNode::HilControlsCallback(const mavros_msgs::HilControlsConstPtr& hil_controls_msg) {
@@ -116,8 +122,16 @@ namespace rotors_hil {
     ros::Time current_time = ros::Time::now();
 
     actuator_msg->angular_velocities.clear();
-    for (int i = 0; i < motor_num; i++)
-      actuator_msg->angular_velocities.push_back(1000.0f * actuator_control_msg->controls[i]);
+    float motor_speed;
+    for (int i = 0; i < motor_num; i++){
+      if(actuator_control_msg->controls[i] < 0.06){
+        // dead-zone throttle
+        motor_speed = 0.0f;
+      }else{
+        motor_speed = 718.078 * actuator_control_msg->controls[i] + 88.448;
+      }
+      actuator_msg->angular_velocities.push_back(motor_speed);
+    }
 
 
     actuator_msg->header.stamp.sec = current_time.sec;

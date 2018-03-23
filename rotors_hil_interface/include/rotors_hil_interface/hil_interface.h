@@ -84,7 +84,7 @@ class HilInterface {
   HilData hil_data_;
 
   /// Object with callbacks for receiving data.
-  HilListeners hil_listeners_;
+  HilListeners *hil_listeners_ptr_;
 
   /// Mutex lock for thread safety of reading hil data.
   boost::mutex mtx_;
@@ -94,7 +94,7 @@ class HilSensorLevelInterface : public HilInterface {
  public:
   /// \brief Constructor
   /// \param[in] q_S_B Quaternion rotation from body frame to NED frame.
-  HilSensorLevelInterface(const Eigen::Quaterniond& q_S_B);
+  HilSensorLevelInterface(const Eigen::Quaterniond& q_S_B, ros::Publisher &mav_pub);
 
   /// \brief Destructor
   virtual ~HilSensorLevelInterface();

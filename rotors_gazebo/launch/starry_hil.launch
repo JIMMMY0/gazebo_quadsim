@@ -21,6 +21,8 @@
     <arg name="paused" value="$(arg paused)" />
     <arg name="gui" value="$(arg gui)" />
     <arg name="verbose" value="$(arg verbose)"/>
+    <!--<arg name="use_clock_frequency" value="true"/>
+    <arg name="pub_clock_frequency" value="1000"/> -->
   </include>
 
   <group ns="$(arg mav_name)">
@@ -32,17 +34,14 @@
       <arg name="log_file" value="$(arg log_file)"/>
     </include>
     <node name="hil_interface" pkg="rotors_hil_interface" type="rotors_hil_interface_node" clear_params="true" output="screen">
-      <!-- <param name="gps_topic" value="gps" />
-      <param name="imu_topic" value="imu" />
-      <param name="mag_topic" value="mag" />
-      <param name="odometry_topic" value="ground_truth/odometry" /> -->
-      <!-- <param name="hil_controls_sub_topic" value="/mavros/hil_controls/hil_controls" /> -->
       <param name="hil_actuator_control_sub_topic" value="/mavros/actuator_control" />
       <param name="actuators_pub_topic" value="gazebo/command/motor_speed" />
       <param name="mavlink_pub_topic" value="/mavlink/to" />
       <param name="sensor_level_hil" value="true" />
       <param name="hil_gps_frequency" value="5.0" />
-      <param name="hil_frequency" value="500.0" />
+      <!-- the publish freq of snesor is decided by real_time_update_rate,
+       which is configured in *.world file -->
+      <param name="hil_frequency" value="100.0" />
     </node>
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />

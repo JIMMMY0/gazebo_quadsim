@@ -83,11 +83,14 @@ struct HilData {
 
 class HilListeners {
  public:
-  HilListeners() {}
+  HilListeners(ros::Publisher &mav_pub) {
+    mav_pub_ = mav_pub;
+  }
   virtual ~HilListeners() {}
 
   bool imu_cb_invoke = false;
   bool mag_cb_invoke = false;
+  bool press_cb_invoke = false;
   bool gps_cb_invoke = false;
 
   /// \brief Callback for handling Air Speed messages.
@@ -157,15 +160,16 @@ class HilListeners {
   /// \brief Callback for handling IMU messages.
   /// \param[in] imu_msg An IMU message.
   /// \param[out] hil_data Pointer to latest data collected for HIL publishing.
-  void ImuCallback(const sensor_msgs::ImuConstPtr& imu_msg,
+  void ImuCallback(const sensor_msgs::ImuConstPtr& imu_msg, 
                    HilData* hil_data) {
     boost::mutex::scoped_lock lock(mtx_);
 
     ROS_ASSERT(hil_data);
 
+    /* change to NED frame */
     hil_data->acc_m_per_s2 = Eigen::Vector3f(imu_msg->linear_acceleration.x,
-                                    imu_msg->linear_acceleration.y,
-                                    imu_msg->linear_acceleration.z);
+                                    -imu_msg->linear_acceleration.y,
+                                    -imu_msg->linear_acceleration.z);
 
     hil_data->att = Eigen::Quaterniond(imu_msg->orientation.w,
                                        imu_msg->orientation.x,
@@ -173,10 +177,44 @@ class HilListeners {
                                        imu_msg->orientation.z);
 
     hil_data->gyro_rad_per_s = Eigen::Vector3f(imu_msg->angular_velocity.x,
-                                     imu_msg->angular_velocity.y,
-                                     imu_msg->angular_velocity.z);
+                                     -imu_msg->angular_velocity.y,
+                                     -imu_msg->angular_velocity.z);
 
     imu_cb_invoke = true;
+
+    /* get current time and change it into ms */
+    ros::Time current_time = ros::Time::now();
+    uint64_t time_usec = RosTimeToMicroseconds(current_time);
+
+    if(mag_cb_invoke == false || press_cb_invoke == false)
+      return;
+
+    hil_sensor_msg_.time_usec = time_usec;
+    hil_sensor_msg_.xacc = hil_data->acc_m_per_s2.x();
+    hil_sensor_msg_.yacc = hil_data->acc_m_per_s2.y();
+    hil_sensor_msg_.zacc = hil_data->acc_m_per_s2.z();
+    hil_sensor_msg_.xgyro = hil_data->gyro_rad_per_s.x();
+    hil_sensor_msg_.ygyro = hil_data->gyro_rad_per_s.y();
+    hil_sensor_msg_.zgyro = hil_data->gyro_rad_per_s.z();
+    hil_sensor_msg_.xmag = hil_data->mag_G.x();
+    hil_sensor_msg_.ymag = hil_data->mag_G.y();
+    hil_sensor_msg_.zmag = hil_data->mag_G.z();
+    hil_sensor_msg_.abs_pressure = hil_data->pressure_abs_mBar;
+    hil_sensor_msg_.diff_pressure = hil_data->pressure_diff_mBar;
+    hil_sensor_msg_.pressure_alt = hil_data->pressure_alt;
+    hil_sensor_msg_.temperature = hil_data->temperature_degC;
+
+    mavlink_message_t mmsg;
+    mavlink_hil_sensor_t* hil_sensor_msg_ptr = &hil_sensor_msg_;
+    mavlink_msg_hil_sensor_encode(1, 0, &mmsg, hil_sensor_msg_ptr);
+
+    mavros_msgs::MavlinkPtr rmsg_hil_sensor = boost::make_shared<mavros_msgs::Mavlink>();
+    rmsg_hil_sensor->header.stamp.sec = current_time.sec;
+    rmsg_hil_sensor->header.stamp.nsec = current_time.nsec;
+    mavros_msgs::mavlink::convert(mmsg, *rmsg_hil_sensor);
+
+    /* publish mavlink msg */
+    mav_pub_.publish(*rmsg_hil_sensor);
   }
 
   /// \brief Callback for handling Magnetometer messages.
@@ -192,8 +230,8 @@ class HilListeners {
     // MAVLINK HIL_SENSOR message measures magnetic field in Gauss.
     // 1 Tesla = 10000 Gauss
     hil_data->mag_G = Eigen::Vector3f(mag_msg->magnetic_field.x,
-                                    mag_msg->magnetic_field.y,
-                                    mag_msg->magnetic_field.z) * kTeslaToGauss;
+                                    -mag_msg->magnetic_field.y,
+                                    -mag_msg->magnetic_field.z) * kTeslaToGauss;
 
     mag_cb_invoke = true;
   }
@@ -223,11 +261,20 @@ class HilListeners {
     hil_data->pressure_alt =
         (1 - pow((pressure_mbar / kStandardPressure_MBar), kPressureToAltExp)) *
             kPressureToAltMult * kFeetToMeters;
+
+    press_cb_invoke = true;
   }
 
  private:
   /// Mutex lock for thread safety of writing hil data.
   boost::mutex mtx_;
+  ros::Publisher mav_pub_;
+  mavlink_hil_sensor_t hil_sensor_msg_;
+
+  inline u_int64_t RosTimeToMicroseconds(const ros::Time& rostime) {
+    return (static_cast<uint64_t>(rostime.nsec * 1e-3) +
+            static_cast<uint64_t>(rostime.sec * 1e6));
+  }
 };
 
 }

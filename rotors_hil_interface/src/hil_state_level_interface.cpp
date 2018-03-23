@@ -40,22 +40,22 @@ HilStateLevelInterface::HilStateLevelInterface(const Eigen::Quaterniond& q_S_B) 
   air_speed_sub_ =
       nh_.subscribe<geometry_msgs::TwistStamped>(
           air_speed_sub_topic, 1, boost::bind(
-              &HilListeners::AirSpeedCallback, &hil_listeners_, _1, &hil_data_));
+              &HilListeners::AirSpeedCallback, hil_listeners_ptr_, _1, &hil_data_));
 
   gps_sub_ =
       nh_.subscribe<sensor_msgs::NavSatFix>(
           gps_sub_topic, 1, boost::bind(
-              &HilListeners::GpsCallback, &hil_listeners_, _1, &hil_data_));
+              &HilListeners::GpsCallback, hil_listeners_ptr_, _1, &hil_data_));
 
   ground_speed_sub_ =
       nh_.subscribe<geometry_msgs::TwistStamped>(
           ground_speed_sub_topic, 1, boost::bind(
-              &HilListeners::GroundSpeedCallback, &hil_listeners_, _1, &hil_data_));
+              &HilListeners::GroundSpeedCallback, hil_listeners_ptr_, _1, &hil_data_));
 
   imu_sub_ =
       nh_.subscribe<sensor_msgs::Imu>(
           imu_sub_topic, 1, boost::bind(
-              &HilListeners::ImuCallback, &hil_listeners_, _1, &hil_data_));
+              &HilListeners::ImuCallback, hil_listeners_ptr_, _1, &hil_data_));
 }
 
 HilStateLevelInterface::~HilStateLevelInterface() {
