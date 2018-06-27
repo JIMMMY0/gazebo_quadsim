@@ -41,7 +41,7 @@
       <param name="hil_gps_frequency" value="5.0" />
       <!-- the publish freq of snesor is decided by real_time_update_rate,
        which is configured in *.world file -->
-      <param name="hil_frequency" value="100.0" />
+      <param name="hil_frequency" value="250.0" />
     </node>
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
