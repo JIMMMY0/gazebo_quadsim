@@ -1,5 +1,8 @@
 Gazebo Quadrotor Simulator (hardware-in-the-loop)
 =============================
+
+**This project is a part of [StarryPilot](https://github.com/JcZou/StarryPilot) autopilot software**
+
 ![](gazebo.png)
 
 # Usage
