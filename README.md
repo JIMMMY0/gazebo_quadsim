@@ -17,6 +17,6 @@ In ROS workspace, execute `catkin build`
 
 - *launch gazebo* 
 
-`roslaunch rotor_gazebo starry_hil.launch`
+`roslaunch rotors_gazebo starry_hil.launch`
 
 To execute the simulation, you should set [**StarryPilot**](https://github.com/JcZou/StarryPilot) autopilot firmware to **HITL mode**.
