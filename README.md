@@ -14,7 +14,7 @@ The simulator is tested in **ROS kinetic**, for other distributions, it is not w
 Download all packages, and move them into **src** directory of ROS workspace.
 - *Compile packages*
 
-In ROS workspace, execute `catkin build`. (you may need to install )
+In ROS workspace, execute `catkin build`. (you may need to install other missing packages)
 
 - *Launch mavros*
 
@@ -24,4 +24,4 @@ In ROS workspace, execute `catkin build`. (you may need to install )
 
 `roslaunch rotors_gazebo starry_hil.launch`
 
-To execute the simulation, you should set [**StarryPilot**](https://github.com/JcZou/StarryPilot) autopilot firmware to **HITL mode**.
+To execute the simulation, you should set [**StarryPilot**](https://github.com/JcZou/StarryPilot) autopilot firmware to **HITL mode**, by `#define HIL_SIMULATION`.
