@@ -43,6 +43,8 @@ HilSensorLevelInterface::HilSensorLevelInterface(const Eigen::Quaterniond& q_S_B
   // Compute the desired interval between published GPS messages.
   gps_interval_nsec_ = static_cast<uint64_t>(kSecToNsec / gps_freq);
 
+  ROS_INFO("gps freq:%f", gps_freq);
+
   // Compute the rotation matrix to rotate data into NED frame
   q_S_B_ = q_S_B;
   R_S_B_ = q_S_B_.matrix().cast<float>();
@@ -93,14 +95,20 @@ std::vector<mavros_msgs::Mavlink> HilSensorLevelInterface::CollectData() {
   std::vector<mavros_msgs::Mavlink> hil_msgs;
 
   // Rotate gyroscope, accelerometer, and magnetometer data into NED frame
-  Eigen::Vector3f gyro = R_S_B_ * hil_data_.gyro_rad_per_s;
-  Eigen::Vector3f acc = R_S_B_ * hil_data_.acc_m_per_s2;
-  Eigen::Vector3f mag = R_S_B_ * hil_data_.mag_G;
+  // Eigen::Vector3f gyro = R_S_B_ * hil_data_.gyro_rad_per_s;
+  // Eigen::Vector3f acc = R_S_B_ * hil_data_.acc_m_per_s2;
+  // Eigen::Vector3f mag = R_S_B_ * hil_data_.mag_G;
+
+  // do not rotate to NED frame, by JC
+  Eigen::Vector3f gyro = hil_data_.gyro_rad_per_s;
+  Eigen::Vector3f acc = hil_data_.acc_m_per_s2;
+  Eigen::Vector3f mag = hil_data_.mag_G;
 
   // Check if we need to publish a HIL_GPS message.
   if ((current_time.nsec - last_gps_pub_time_nsec_) >= gps_interval_nsec_) {
     last_gps_pub_time_nsec_ = current_time.nsec;
 
+    //ROS_INFO("gps hil");
     // Rotate ground speed data into NED frame
     Eigen::Vector3i gps_vel = (R_S_B_ * hil_data_.gps_vel_cm_per_s.cast<float>()).cast<int>();
 
@@ -131,37 +139,37 @@ std::vector<mavros_msgs::Mavlink> HilSensorLevelInterface::CollectData() {
   }
 
   /* add by JC: fix the problem that data is collected before callback function */
-  //if(hil_listeners_.imu_cb_invoke && hil_listeners_.mag_cb_invoke){
-    // Fill in a MAVLINK HIL_SENSOR message and convert it to MAVROS format.
-    hil_sensor_msg_.time_usec = time_usec;
-    hil_sensor_msg_.xacc = acc.x();
-    hil_sensor_msg_.yacc = acc.y();
-    hil_sensor_msg_.zacc = acc.z();
-    hil_sensor_msg_.xgyro = gyro.x();
-    hil_sensor_msg_.ygyro = gyro.y();
-    hil_sensor_msg_.zgyro = gyro.z();
-    hil_sensor_msg_.xmag = mag.x();
-    hil_sensor_msg_.ymag = mag.y();
-    hil_sensor_msg_.zmag = mag.z();
-    hil_sensor_msg_.abs_pressure = hil_data_.pressure_abs_mBar;
-    hil_sensor_msg_.diff_pressure = hil_data_.pressure_diff_mBar;
-    hil_sensor_msg_.pressure_alt = hil_data_.pressure_alt;
-    hil_sensor_msg_.temperature = hil_data_.temperature_degC;
-    hil_sensor_msg_.fields_updated = kAllFieldsUpdated;
+  // if(hil_listeners_ptr_->imu_cb_invoke && hil_listeners_ptr_->mag_cb_invoke){
+  //   // Fill in a MAVLINK HIL_SENSOR message and convert it to MAVROS format.
+  //   hil_sensor_msg_.time_usec = time_usec;
+  //   hil_sensor_msg_.xacc = acc.x();
+  //   hil_sensor_msg_.yacc = acc.y();
+  //   hil_sensor_msg_.zacc = acc.z();
+  //   hil_sensor_msg_.xgyro = gyro.x();
+  //   hil_sensor_msg_.ygyro = gyro.y();
+  //   hil_sensor_msg_.zgyro = gyro.z();
+  //   hil_sensor_msg_.xmag = mag.x();
+  //   hil_sensor_msg_.ymag = mag.y();
+  //   hil_sensor_msg_.zmag = mag.z();
+  //   hil_sensor_msg_.abs_pressure = hil_data_.pressure_abs_mBar;
+  //   hil_sensor_msg_.diff_pressure = hil_data_.pressure_diff_mBar;
+  //   hil_sensor_msg_.pressure_alt = hil_data_.pressure_alt;
+  //   hil_sensor_msg_.temperature = hil_data_.temperature_degC;
+  //   hil_sensor_msg_.fields_updated = kAllFieldsUpdated;
 
-    ROS_INFO("acc %f %f %f gyr %f %f %f mag %f %f %f", hil_sensor_msg_.xacc, hil_sensor_msg_.yacc, hil_sensor_msg_.zacc,
-        hil_sensor_msg_.xgyro, hil_sensor_msg_.ygyro, hil_sensor_msg_.zgyro, hil_sensor_msg_.xmag, hil_sensor_msg_.ymag, hil_sensor_msg_.zmag);
+  //   //ROS_INFO("acc %f %f %f gyr %f %f %f mag %f %f %f", hil_sensor_msg_.xacc, hil_sensor_msg_.yacc, hil_sensor_msg_.zacc,
+  //   //    hil_sensor_msg_.xgyro, hil_sensor_msg_.ygyro, hil_sensor_msg_.zgyro, hil_sensor_msg_.xmag, hil_sensor_msg_.ymag, hil_sensor_msg_.zmag);
 
-    mavlink_hil_sensor_t* hil_sensor_msg_ptr = &hil_sensor_msg_;
-    mavlink_msg_hil_sensor_encode(1, 0, &mmsg, hil_sensor_msg_ptr);
+  //   mavlink_hil_sensor_t* hil_sensor_msg_ptr = &hil_sensor_msg_;
+  //   mavlink_msg_hil_sensor_encode(1, 0, &mmsg, hil_sensor_msg_ptr);
 
-    mavros_msgs::MavlinkPtr rmsg_hil_sensor = boost::make_shared<mavros_msgs::Mavlink>();
-    rmsg_hil_sensor->header.stamp.sec = current_time.sec;
-    rmsg_hil_sensor->header.stamp.nsec = current_time.nsec;
-    mavros_msgs::mavlink::convert(mmsg, *rmsg_hil_sensor);
+  //   mavros_msgs::MavlinkPtr rmsg_hil_sensor = boost::make_shared<mavros_msgs::Mavlink>();
+  //   rmsg_hil_sensor->header.stamp.sec = current_time.sec;
+  //   rmsg_hil_sensor->header.stamp.nsec = current_time.nsec;
+  //   mavros_msgs::mavlink::convert(mmsg, *rmsg_hil_sensor);
 
-    hil_msgs.push_back(*rmsg_hil_sensor);
-  //}
+  //   hil_msgs.push_back(*rmsg_hil_sensor);
+  // }
 
   return hil_msgs;
 }

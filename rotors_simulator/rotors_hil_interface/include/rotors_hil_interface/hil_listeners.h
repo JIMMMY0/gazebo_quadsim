@@ -36,7 +36,7 @@ static constexpr int kFixNone = 0;
 static constexpr int kFix3D = 3;
 static constexpr int kHDOP = 100;
 static constexpr int kVDOP = 100;
-static constexpr int kSatellitesVisible = 4;
+static constexpr int kSatellitesVisible = 10;
 static constexpr int kUnknown = 65535;
 
 // Conversions
@@ -214,7 +214,7 @@ class HilListeners {
     mavros_msgs::mavlink::convert(mmsg, *rmsg_hil_sensor);
 
     /* publish mavlink msg */
-    mav_pub_.publish(*rmsg_hil_sensor);
+    mav_pub_.publish(*rmsg_hil_sensor); 
   }
 
   /// \brief Callback for handling Magnetometer messages.

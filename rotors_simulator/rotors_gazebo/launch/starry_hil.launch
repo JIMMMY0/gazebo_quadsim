@@ -38,7 +38,7 @@
       <param name="actuators_pub_topic" value="gazebo/command/motor_speed" />
       <param name="mavlink_pub_topic" value="/mavlink/to" />
       <param name="sensor_level_hil" value="true" />
-      <param name="hil_gps_frequency" value="5.0" />
+      <param name="hil_gps_frequency" value="10.0" />
       <!-- the publish freq of snesor is decided by real_time_update_rate,
        which is configured in *.world file -->
       <param name="hil_frequency" value="250.0" />

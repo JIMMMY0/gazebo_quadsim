@@ -52,7 +52,7 @@ namespace rotors_hil {
 
     const Eigen::Quaterniond q_S_B = roll_angle * pitch_angle * yaw_angle;
 
-    ROS_INFO("hil freq:%d", hil_frequency);
+    ROS_INFO("hil freq:%f", hil_frequency);
     /* it is not hard real-time */
     rate_ = ros::Rate(hil_frequency);
 
@@ -80,20 +80,20 @@ namespace rotors_hil {
   void HilInterfaceNode::MainTask() {
     //static double last_msec = 0;
     /* while node is not shutdown */
-    // while (ros::ok()) {
-    //   ros::spinOnce();
-    //   /* collect sensor data */
-    //   std::vector<mavros_msgs::Mavlink> hil_msgs = hil_interface_->CollectData();
-    //   while (!hil_msgs.empty()) {
-    //     /* publish mavlink msg */
-    //     mavlink_pub_.publish(hil_msgs.back());
-    //     hil_msgs.pop_back();
-    //   }
-    //   //ros::spinOnce();
-    //   rate_.sleep();
-    // }
+    while (ros::ok()) {
+      ros::spinOnce();
+      /* collect sensor data */
+      std::vector<mavros_msgs::Mavlink> hil_msgs = hil_interface_->CollectData();
+      while (!hil_msgs.empty()) {
+        /* publish mavlink msg */
+        mavlink_pub_.publish(hil_msgs.back());
+        hil_msgs.pop_back();
+      }
+      //ros::spinOnce();
+      rate_.sleep();
+    }
 
-    ros::spin();
+    // ros::spin();
   }
 
   void HilInterfaceNode::HilControlsCallback(const mavros_msgs::HilControlsConstPtr& hil_controls_msg) {

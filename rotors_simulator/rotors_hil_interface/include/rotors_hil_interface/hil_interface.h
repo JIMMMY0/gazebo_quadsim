@@ -30,7 +30,7 @@ namespace rotors_hil {
 static constexpr int kAllFieldsUpdated = 4095;
 
 // Default values
-static constexpr double kDefaultGpsFrequency = 5.0;
+static constexpr double kDefaultGpsFrequency = 10.0;
 static const std::string kDefaultPressureSubTopic = "air_pressure";
 
 /// \brief Convert ros::Time into single value in microseconds.
